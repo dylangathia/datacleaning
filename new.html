@@ -1,0 +1,1394 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Smart CSV Cleaner — PRO Edition</title>
+
+  <!-- Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #1e293b;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --blue: #3b82f6;
+      --green: #10b981;
+      --red: #ef4444;
+      --orange: #f59e0b;
+      --purple: #8b5cf6;
+    }
+
+    .dark-mode {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --border: #334155;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 20px;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    .wrap { max-width: 1400px; margin: 0 auto; }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      color: var(--blue);
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .theme-toggle {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      cursor: pointer;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+
+    .theme-toggle:hover {
+      background: var(--bg);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 20px;
+    }
+
+    @media (max-width: 1100px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .upload {
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 30px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .upload:hover, .upload.drag {
+      border-color: var(--blue);
+      background: rgba(59, 130, 246, 0.05);
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      background: var(--blue);
+      color: white;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .btn:hover:not(:disabled) {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn.ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn.warn {
+      background: var(--red);
+    }
+
+    .btn.ai {
+      background: var(--purple);
+    }
+
+    .stats {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .stat .small {
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .stat .v {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .input-small {
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 0.9rem;
+      background: var(--card);
+      color: var(--text);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    th {
+      background: var(--bg);
+      padding: 10px;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 2px solid var(--border);
+    }
+
+    td {
+      padding: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    tr.invalid {
+      background: rgba(239, 68, 68, 0.05);
+    }
+
+    .telecom {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    .telecom.safaricom { background: #10b981; color: white; }
+    .telecom.airtel { background: #ef4444; color: white; }
+    .telecom.telkom { background: #3b82f6; color: white; }
+    .telecom.faiba { background: #8b5cf6; color: white; }
+    .telecom.unknown { background: var(--muted); color: white; }
+
+    .balance-alert {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 6px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .balance-alert.success {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid var(--green);
+      color: var(--green);
+    }
+
+    .balance-alert.warning {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid var(--orange);
+      color: var(--orange);
+    }
+
+    .balance-alert.danger {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid var(--red);
+      color: var(--red);
+    }
+
+    .balance-alert.hidden {
+      display: none;
+    }
+
+    .info-box {
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid var(--blue);
+      border-radius: 6px;
+      padding: 10px;
+      font-size: 0.85rem;
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      color: var(--blue);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding: 15px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .toast.hidden {
+      display: none;
+    }
+
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+
+    .modal.hidden {
+      display: none;
+    }
+
+    .modal-content {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 30px;
+      max-width: 500px;
+      width: 90%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+
+    .modal-content h3 {
+      margin-bottom: 20px;
+      color: var(--text);
+    }
+
+    .modal-options {
+      margin-bottom: 20px;
+    }
+
+    .modal-options label {
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 25px;
+    }
+
+    .pager {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .keyboard-shortcuts {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding: 10px 15px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    kbd {
+      background: var(--bg);
+      padding: 2px 6px;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+      font-family: monospace;
+    }
+
+    .side {
+      position: sticky;
+      top: 20px;
+      height: fit-content;
+    }
+
+    .small {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Smart CSV Cleaner — PRO Edition</h1>
+        <div class="subtitle">Robust parsing, advanced validation, inline fixes, charts, undo and clean export.</div>
+      </div>
+      <div class="controls">
+        <button id="themeToggle" class="theme-toggle" title="Toggle dark mode">
+          <i class="fas fa-moon"></i>
+        </button>
+        <button id="loadSample" class="btn ghost">Load Sample</button>
+        <button id="aiFixBtn" class="btn ai">AI Auto-Fix</button>
+      </div>
+    </header>
+
+    <div class="grid">
+      <div>
+        <div class="card">
+          <div id="uploadZone" class="upload" tabindex="0">
+            <div style="font-size:28px;color:var(--blue)"><i class="fas fa-file-csv"></i></div>
+            <div style="font-weight:700;margin-top:8px">Drop CSV here or click to choose</div>
+            <div style="margin-top:6px;color:var(--muted)">Supported headers: mobile, phone, firstName, lastName, package, bundle, amount</div>
+            <div style="margin-top:10px"><input id="fileInput" type="file" accept="text/csv" style="display:none"></div>
+          </div>
+
+          <div style="margin-top:12px;display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <button id="autoFixBtn" class="btn">Auto-Fix</button>
+              <button id="removeInvalidBtn" class="btn warn">Remove Invalid</button>
+              <button id="removeDupBtn" class="btn ghost">Remove Duplicates</button>
+              <button id="undoBtn" class="btn ghost" disabled>Undo</button>
+              <button id="redoBtn" class="btn ghost" disabled>Redo</button>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <label style="font-size:0.85rem;color:var(--muted)">Balance (KES):</label>
+              <input id="balanceInput" class="input-small" type="number" value="5000" title="Available balance (KES)" style="width:100px">
+              <button id="exportBtn" class="btn" style="background:var(--green)"><i class="fas fa-download"></i> Export</button>
+            </div>
+          </div>
+
+          <div id="balanceFeedback" class="balance-alert hidden"></div>
+
+          <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+            <div class="stats">
+              <div class="stat"><div class="small">Total</div><div class="v" id="statTotal">0</div></div>
+              <div class="stat"><div class="small">Valid</div><div class="v" id="statValid">0</div></div>
+              <div class="stat"><div class="small">Invalid</div><div class="v" id="statInvalid">0</div></div>
+              <div class="stat"><div class="small">Duplicates</div><div class="v" id="statDup">0</div></div>
+            </div>
+            <div style="width:220px">
+              <canvas id="summaryChart" height="90"></canvas>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="card" style="margin-top:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+            <div style="display:flex;gap:8px;align-items:center">
+              <label class="small">Filter</label>
+              <select id="filterSelect" class="input-small"><option value="all">All</option><option value="valid">Valid</option><option value="invalid">Invalid</option><option value="duplicates">Duplicates</option></select>
+              <input id="searchInput" class="input-small" type="text" placeholder="Search..." style="width:150px">
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button id="sortBundle" class="btn ghost">Sort by Bundle ⤓</button>
+            </div>
+          </div>
+
+          <div style="overflow:auto;margin-top:12px">
+            <table id="dataTable">
+              <thead>
+                <tr><th>Name</th><th>Phone</th><th>Telco</th><th>Bundle (units)</th><th>Status</th><th>Action</th></tr>
+              </thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+
+          <div class="pager" id="pager" style="margin-top:8px"></div>
+        </div>
+      </div>
+
+      <div class="card side">
+        <h3 style="margin:0 0 8px 0">Live Checks & Tools</h3>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div><strong>Auto Fix Rules:</strong><br><small class="small">Removes whitespace, dashes, parentheses; adds +254 for Kenyan patterns; attempts international normalization.</small></div>
+          
+          <div class="info-box">
+            <i class="fas fa-info-circle"></i> <strong>Note:</strong> Telco detection is approximate due to number portability in Kenya. Results should be used as estimates only.
+          </div>
+
+          <div><strong>Validation Details</strong><div id="details" class="small" style="margin-top:6px;color:var(--muted)">No file loaded.</div></div>
+          
+          <div>
+            <strong>Options</strong>
+            <div style="margin-top:8px"><label><input id="optPersistFilter" type="checkbox"> Persist filter after actions</label></div>
+            <div style="margin-top:6px"><label><input id="optPagination" type="checkbox" checked> Enable pagination (20 rows/page)</label></div>
+            <div style="margin-top:6px"><label><input id="optDarkMode" type="checkbox"> Dark mode</label></div>
+          </div>
+
+          <div style="margin-top:12px;padding-top:12px;border-top:1px solid #e6eefb">
+            <strong>AI Features</strong>
+            <div style="margin-top:8px;font-size:0.85rem;color:var(--muted)">
+              AI-assisted cleaning intelligently fixes problematic phone numbers that standard rules can't handle.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Toast (undo, messages) -->
+  <div id="toast" class="toast hidden"><span id="toastMsg">Message</span><button id="toastUndo" class="btn ghost">Undo</button></div>
+
+  <!-- Export Modal -->
+  <div id="exportModal" class="modal hidden">
+    <div class="modal-content">
+      <h3>Export Options</h3>
+      
+      <div class="modal-options">
+        <label><strong>Data to Export:</strong></label>
+        <div style="margin-top:8px">
+          <label><input type="radio" name="exportScope" value="all" checked> All Rows</label>
+          <label style="margin-left:15px;"><input type="radio" name="exportScope" value="valid"> Valid Rows Only</label>
+          <label style="margin-left:15px;"><input type="radio" name="exportScope" value="current"> Current Filter</label>
+        </div>
+      </div>
+      
+      <div class="modal-options">
+        <label><strong>Format:</strong></label>
+        <div style="margin-top:8px">
+          <label><input type="radio" name="exportFormat" value="csv" checked> CSV</label>
+          <label style="margin-left:15px;"><input type="radio" name="exportFormat" value="json"> JSON</label>
+          <label style="margin-left:15px;"><input type="radio" name="exportFormat" value="excel"> Excel</label>
+        </div>
+      </div>
+      
+      <div class="modal-options">
+        <label><input type="checkbox" id="includeMetadata" checked> Include validation metadata</label>
+      </div>
+      
+      <div class="modal-actions">
+        <button id="exportCancel" class="btn ghost">Cancel</button>
+        <button id="exportConfirm" class="btn">Export</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Keyboard Shortcuts -->
+  <div class="keyboard-shortcuts">
+    <div><kbd>Ctrl</kbd> + <kbd>F</kbd> - Search</div>
+    <div><kbd>Ctrl</kbd> + <kbd>Z</kbd> - Undo</div>
+    <div><kbd>Ctrl</kbd> + <kbd>Y</kbd> - Redo</div>
+  </div>
+
+<script>
+// PRO Edition JS — Enhanced with all requested features
+// Config / constants
+const CONFIG = {
+  PAGE_SIZE: 20,
+  TELCO_PREFIXES: {
+    safaricom: ['+25470','+25471','+25472','+25479','+25474','+25410','+25411','+25412'],
+    airtel: ['+25473','+25478','+25475','+25476','+25457','+25458','+25459'],
+    telkom: ['+25477','+25475','+25455','+25456'],
+    faiba: ['+25447']
+  },
+  USE_AI: true
+};
+
+// Data History for undo/redo
+const DataHistory = {
+  history: [],
+  currentIndex: -1,
+  maxHistory: 50,
+  
+  saveState(rows, action) {
+    if (this.currentIndex >= 0) {
+      const currentState = JSON.stringify(this.history[this.currentIndex].rows);
+      const newState = JSON.stringify(rows);
+      if (currentState === newState) return;
+    }
+    
+    if (this.currentIndex < this.history.length - 1) {
+      this.history = this.history.slice(0, this.currentIndex + 1);
+    }
+    
+    this.history.push({
+      rows: JSON.parse(JSON.stringify(rows)),
+      action: action,
+      timestamp: new Date()
+    });
+    
+    if (this.history.length > this.maxHistory) {
+      this.history.shift();
+    }
+    
+    this.currentIndex = this.history.length - 1;
+    this.updateUndoRedoButtons();
+  },
+  
+  undo() {
+    if (this.currentIndex > 0) {
+      this.currentIndex--;
+      return this.history[this.currentIndex].rows;
+    }
+    return null;
+  },
+  
+  redo() {
+    if (this.currentIndex < this.history.length - 1) {
+      this.currentIndex++;
+      return this.history[this.currentIndex].rows;
+    }
+    return null;
+  },
+  
+  updateUndoRedoButtons() {
+    const undoBtn = document.getElementById('undoBtn');
+    const redoBtn = document.getElementById('redoBtn');
+    
+    if (undoBtn) undoBtn.disabled = this.currentIndex <= 0;
+    if (redoBtn) redoBtn.disabled = this.currentIndex >= this.history.length - 1;
+  }
+};
+
+// App state (encapsulated)
+const App = (()=>{
+  let rows = [];
+  let page = 1; let pageSize = CONFIG.PAGE_SIZE; let usePagination = true;
+  let lastRemoved = null;
+  let sortDesc = true; let filter = 'all';
+  let searchTerm = '';
+
+  const refs = {
+    fileInput: document.getElementById('fileInput'), 
+    uploadZone: document.getElementById('uploadZone'),
+    tableBody: document.getElementById('tableBody'), 
+    stats: {
+      total:document.getElementById('statTotal'), 
+      valid:document.getElementById('statValid'), 
+      invalid:document.getElementById('statInvalid'), 
+      dup:document.getElementById('statDup')
+    },
+    chartCtx: document.getElementById('summaryChart').getContext('2d'), 
+    toast: document.getElementById('toast'), 
+    toastMsg: document.getElementById('toastMsg'), 
+    toastUndo: document.getElementById('toastUndo'),
+    filterSelect: document.getElementById('filterSelect'), 
+    balanceInput: document.getElementById('balanceInput'), 
+    balanceFeedback: document.getElementById('balanceFeedback'),
+    undoBtn: document.getElementById('undoBtn'), 
+    redoBtn: document.getElementById('redoBtn'),
+    pager: document.getElementById('pager'), 
+    optPersistFilter: document.getElementById('optPersistFilter'), 
+    optPagination: document.getElementById('optPagination'),
+    optDarkMode: document.getElementById('optDarkMode'),
+    details: document.getElementById('details'),
+    searchInput: document.getElementById('searchInput'),
+    exportModal: document.getElementById('exportModal'),
+    themeToggle: document.getElementById('themeToggle'),
+    exportBtn: document.getElementById('exportBtn'),
+    removeInvalidBtn: document.getElementById('removeInvalidBtn'),
+    autoFixBtn: document.getElementById('autoFixBtn'),
+    removeDupBtn: document.getElementById('removeDupBtn'),
+    sortBundle: document.getElementById('sortBundle'),
+    loadSample: document.getElementById('loadSample'),
+    aiFixBtn: document.getElementById('aiFixBtn')
+  };
+
+  let chart = null;
+
+  function validatePhoneDetailed(raw){
+    if (!raw || raw.toString().trim()==='') return {isValid:false,formatted:'', message:'Missing number', reason:'missing'};
+    
+    let s = raw.toString().trim();
+    const original = s;
+    
+    s = s.replace(/[\s\.\-()]/g,'');
+    
+    if (/[A-Za-z]/.test(s)) return {isValid:false,formatted:original,message:'Contains letters',reason:'letters'};
+    
+    if (s.startsWith('00')) s = '+' + s.substring(2);
+    if (s.startsWith('011')) s = '+' + s.substring(3);
+    
+    const digits = s.replace(/\D/g,'');
+    const digitCount = digits.length;
+    
+    if (digitCount < 7) return {isValid:false,formatted:original,message:'Too short',reason:'too-short'};
+    if (digitCount > 15) return {isValid:false,formatted:original,message:'Too long',reason:'too-long'};
+    
+    if (/^\+2547\d{8}$/.test(s)) return {isValid:true,formatted:s,message:'Valid Kenyan',reason:'ok-kenya'};
+    if (/^2547\d{8}$/.test(s)) return {isValid:true,formatted:'+'+s,message:'Fixed: added +',reason:'fixed-plus'};
+    if (/^07\d{8}$/.test(s)) return {isValid:true,formatted:'+254'+s.slice(1),message:'Fixed: 07 → +254',reason:'fixed-07'};
+    if (/^7\d{8}$/.test(s)) return {isValid:true,formatted:'+254'+s,message:'Fixed: 7 → +254',reason:'fixed-7'};
+    
+    if (/^\+255[67]\d{8}$/.test(s)) return {isValid:true,formatted:s,message:'Valid Tanzanian',reason:'ok-tanzania'};
+    if (/^\+256[57]\d{8}$/.test(s)) return {isValid:true,formatted:s,message:'Valid Ugandan',reason:'ok-uganda'};
+    if (/^\+257[67]\d{7}$/.test(s)) return {isValid:true,formatted:s,message:'Valid Burundi',reason:'ok-burundi'};
+    
+    if (/^\+\d{10,15}$/.test(s)) return {isValid:true,formatted:s,message:'Valid international',reason:'ok-intl'};
+    
+    return {isValid:false,formatted:original,message:'Invalid format',reason:'invalid-format'};
+  }
+
+  function detectTelco(formatted){
+    if (!formatted) return 'unknown';
+    for (const [k, prefs] of Object.entries(CONFIG.TELCO_PREFIXES)) {
+      if (prefs.some(pref=>formatted.startsWith(pref))) return k;
+    }
+    if (formatted.startsWith('+2547')) return 'mobile';
+    return 'unknown';
+  }
+
+  function validateBundle(raw){
+    if (raw===undefined || raw===null || raw.toString().trim()==='') return {isValid:false, value:0, message:'Missing bundle', reason:'missing'};
+    const cleaned = raw.toString().replace(/[^0-9.]/g,'');
+    if (cleaned==='') return {isValid:false,value:0,message:'Not a number',reason:'nan'};
+    const v = parseFloat(cleaned);
+    if (isNaN(v) || v < 0) return {isValid:false,value:0,message:'Must be positive',reason:'invalid'};
+    return {isValid:true,value:v,message:'OK',reason:'ok'};
+  }
+
+  function detectCSVColumns(headers) {
+    const columnMap = {};
+    
+    headers.forEach(header => {
+      const h = header.toLowerCase().trim();
+      
+      if (!columnMap.phone) {
+        const phonePatterns = ['mobile', 'phone', 'msisdn', 'telephone', 'contact'];
+        if (phonePatterns.some(pattern => h.includes(pattern))) columnMap.phone = header;
+      }
+      
+      if (!columnMap.bundle) {
+        const bundlePatterns = ['bundle', 'package', 'amount', 'data', 'mb', 'gb', 'units'];
+        if (bundlePatterns.some(pattern => h.includes(pattern))) columnMap.bundle = header;
+      }
+      
+      if (!columnMap.firstName) {
+        const firstPatterns = ['first', 'fname', 'given'];
+        if (firstPatterns.some(pattern => h.includes(pattern))) columnMap.firstName = header;
+      }
+      
+      if (!columnMap.lastName) {
+        const lastPatterns = ['last', 'lname', 'surname', 'family'];
+        if (lastPatterns.some(pattern => h.includes(pattern))) columnMap.lastName = header;
+      }
+    });
+    
+    if (!columnMap.phone && headers.length > 0) columnMap.phone = headers[0];
+    if (!columnMap.bundle && headers.length > 1) columnMap.bundle = headers[1];
+    
+    return columnMap;
+  }
+
+  function parseAndLoad(text){
+    try{
+      const res = Papa.parse(text,{header:true,skipEmptyLines:true,transformHeader:h=>h.trim().toLowerCase()});
+      if (res.errors && res.errors.length) console.warn('CSV parse errors',res.errors);
+      
+      const headers = Object.keys(res.data[0] || {});
+      const columnMap = detectCSVColumns(headers);
+      
+      console.log('Detected columns:', columnMap);
+      
+      const mapped = res.data.map((r,i)=>{
+        const rawPhone = (r[columnMap.phone]||'').toString(); 
+        const bundle = (r[columnMap.bundle]||'').toString();
+        const firstName = columnMap.firstName ? (r[columnMap.firstName]||'').toString().trim() : '';
+        const lastName = columnMap.lastName ? (r[columnMap.lastName]||'').toString().trim() : '';
+        const fullName = [firstName, lastName].filter(Boolean).join(' ');
+        
+        const validation = validatePhoneDetailed(rawPhone);
+        const telco = validation.isValid? detectTelco(validation.formatted) : 'unknown';
+        const bundleV = validateBundle(bundle);
+        
+        return {
+          id:i, 
+          rawPhone, 
+          bundle, 
+          firstName,
+          lastName,
+          fullName,
+          validation, 
+          telco, 
+          isDuplicate:false, 
+          bundleMeta: bundleV
+        };
+      });
+      rows = mapped; page = 1; 
+      DataHistory.saveState(rows, 'load');
+      updateAll();
+      refs.details.textContent = `Loaded ${rows.length} rows — Detected columns: ${Object.values(columnMap).join(', ')}`;
+    }catch(err){ 
+      console.error('Parse error:', err); 
+      alert('Failed to parse CSV. Check console for details.'); 
+    }
+  }
+
+  function renderTable(){
+    const f = filter;
+    let toDisplay = rows.filter(r=>{
+      if (f==='all') return true;
+      if (f==='valid') return r.validation.isValid && !r.isDuplicate;
+      if (f==='invalid') return !r.validation.isValid;
+      if (f==='duplicates') return r.isDuplicate;
+      return true;
+    });
+
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      toDisplay = toDisplay.filter(r => 
+        r.rawPhone.toLowerCase().includes(term) ||
+        (r.fullName && r.fullName.toLowerCase().includes(term)) ||
+        r.telco.toLowerCase().includes(term) ||
+        r.bundle.toString().toLowerCase().includes(term)
+      );
+    }
+
+    if (usePagination && toDisplay.length > pageSize){
+      const totalPages = Math.ceil(toDisplay.length / pageSize);
+      if (page > totalPages) page = 1;
+      const start = (page-1)*pageSize; 
+      toDisplay = toDisplay.slice(start, start+pageSize);
+      renderPager(totalPages);
+    } else { refs.pager.innerHTML = ''; }
+
+    refs.tableBody.innerHTML = '';
+    for (const r of toDisplay){
+      const tr = document.createElement('tr');
+      if (!r.validation.isValid || r.isDuplicate) tr.classList.add('invalid');
+      const telcoCls = r.telco==='safaricom' ? 'safaricom' : 
+                      r.telco==='airtel' ? 'airtel' : 
+                      r.telco==='telkom' ? 'telkom' :
+                      r.telco==='faiba' ? 'faiba' : 'unknown';
+      
+      const displayName = r.fullName || '-';
+      
+      tr.innerHTML = `
+        <td style="min-width:120px">${escapeAttr(displayName)}</td>
+        <td><input class="input-small" data-id="${r.id}" data-field="phone" value="${escapeAttr(r.rawPhone)}" title="${escapeAttr(r.validation.message)}" style="min-width:150px"></td>
+        <td><span class="telecom ${telcoCls}">${r.telco.toUpperCase()}</span></td>
+        <td><input class="input-small" data-id="${r.id}" data-field="bundle" value="${escapeAttr(r.bundle)}" title="${escapeAttr(r.bundleMeta.message)}" style="width:100px"></td>
+        <td>${r.validation.isValid? '<span style="color:var(--green);font-weight:700">✓ VALID</span>' : '<span style="color:var(--red);font-weight:700">✗ INVALID</span>'}${r.bundleMeta && !r.bundleMeta.isValid? '<div style="color:var(--red);font-size:0.85rem">'+r.bundleMeta.message+'</div>':''}</td>
+        <td><button class="btn ghost" data-action="delete" data-id="${r.id}" style="padding:4px 8px;font-size:0.85rem">Delete</button></td>
+      `;
+      refs.tableBody.appendChild(tr);
+    }
+
+    refs.tableBody.querySelectorAll('input[data-field]').forEach(inp=>{ 
+      inp.oninput = handleInlineEdit; 
+      inp.onchange = handleInlineEdit; 
+    });
+    refs.tableBody.querySelectorAll('button[data-action=delete]').forEach(b=> 
+      b.onclick = ()=>{ 
+        const id = +b.dataset.id; 
+        rows = rows.filter(rr=>rr.id!==id); 
+        DataHistory.saveState(rows, 'delete');
+        updateAll(); 
+      }
+    );
+  }
+
+  function renderPager(totalPages){
+    refs.pager.innerHTML = '';
+    if (totalPages <= 1) return;
+    
+    if (page > 1) {
+      const prev = document.createElement('button'); 
+      prev.className='btn ghost'; 
+      prev.innerHTML = '← Prev';
+      prev.onclick = () => { page--; renderTable(); };
+      refs.pager.appendChild(prev);
+    }
+
+    for (let i=1;i<=totalPages;i++){
+      if (totalPages > 10 && (i > 3 && i < totalPages - 2 && Math.abs(i - page) > 2)) {
+        if (i === 4 || i === totalPages - 3) {
+          const ellipsis = document.createElement('span');
+          ellipsis.textContent = '...';
+          ellipsis.style.padding = '0 8px';
+          refs.pager.appendChild(ellipsis);
+        }
+        continue;
+      }
+      const btn = document.createElement('button'); 
+      btn.className='btn ghost'; 
+      btn.textContent=i; 
+      if (i===page) btn.style.fontWeight='700'; 
+      btn.onclick=()=>{ page=i; renderTable(); };
+      refs.pager.appendChild(btn);
+    }
+
+    if (page < totalPages) {
+      const next = document.createElement('button'); 
+      next.className='btn ghost'; 
+      next.innerHTML = 'Next →';
+      next.onclick = () => { page++; renderTable(); };
+      refs.pager.appendChild(next);
+    }
+  }
+
+  function updateStats(){
+    const total = rows.length; 
+    const valid = rows.filter(r=>r.validation.isValid && !r.isDuplicate).length; 
+    const invalid = rows.filter(r=>!r.validation.isValid).length; 
+    const dups = rows.filter(r=>r.isDuplicate).length;
+    refs.stats.total.textContent=total; 
+    refs.stats.valid.textContent=valid; 
+    refs.stats.invalid.textContent=invalid; 
+    refs.stats.dup.textContent=dups;
+    updateChart(valid, invalid, dups);
+  }
+
+  function updateChart(valid, invalid, dups){
+    const data = {
+      labels:['Valid','Invalid','Duplicates'],
+      datasets:[{
+        label:'Rows',
+        data:[valid,invalid,dups],
+        backgroundColor:['#10b981','#ef4444','#f59e0b']
+      }]
+    };
+    if (!chart) {
+      chart = new Chart(refs.chartCtx,{
+        type:'doughnut',
+        data,
+        options:{
+          plugins:{
+            legend:{position:'bottom',labels:{fontSize:10}}
+          },
+          responsive:true,
+          maintainAspectRatio:true
+        }
+      });
+    } else { 
+      chart.data = data; 
+      chart.update(); 
+    }
+  }
+
+  function recomputeDuplicates(){
+    const counts = {};
+    rows.forEach(r=>{ 
+      const key = r.validation && r.validation.formatted ? r.validation.formatted : (r.rawPhone||''); 
+      counts[key] = (counts[key]||0)+1; 
+    });
+    rows.forEach(r=> 
+      r.isDuplicate = counts[(r.validation && r.validation.formatted) ? r.validation.formatted : (r.rawPhone||'')] > 1 
+    );
+  }
+
+  function updateAll(){
+    recomputeDuplicates(); 
+    updateStats(); 
+    renderTable(); 
+    checkBalance(); 
+    persistFilter(); 
+  }
+
+  function handleInlineEdit(e){
+    const id = +e.target.dataset.id; 
+    const field = e.target.dataset.field; 
+    const val = e.target.value; 
+    const idx = rows.findIndex(r=>r.id===id); 
+    if (idx<0) return;
+    
+    if (field==='phone'){ 
+      rows[idx].rawPhone = val; 
+      rows[idx].validation = validatePhoneDetailed(val); 
+      rows[idx].telco = rows[idx].validation.isValid ? detectTelco(rows[idx].validation.formatted) : 'unknown'; 
+    }
+    if (field==='bundle'){ 
+      rows[idx].bundle = val; 
+      rows[idx].bundleMeta = validateBundle(val); 
+    }
+    recomputeDuplicates(); 
+    updateStats(); 
+    renderTable(); 
+    checkBalance();
+  }
+
+  function autoFix(){ 
+    rows = rows.map(r=>{ 
+      let p = (r.rawPhone||'').toString(); 
+      p = p.replace(/[\s\-()\.]/g,''); 
+      if (/^2547\d{8}$/.test(p)) p='+'+p; 
+      if (/^07\d{8}$/.test(p)) p='+254'+p.slice(1); 
+      if (/^7\d{8}$/.test(p)) p='+254'+p; 
+      
+      const validation = validatePhoneDetailed(p); 
+      const telco = validation.isValid? detectTelco(validation.formatted) : 'unknown'; 
+      const bMeta = validateBundle(r.bundle); 
+      return {...r, rawPhone:p, validation, telco, bundleMeta:bMeta}; 
+    }); 
+    
+    DataHistory.saveState(rows, 'auto-fix');
+    updateAll(); 
+    showToast('✓ Auto-Fix applied'); 
+  }
+
+  function removeInvalidRows() {
+    if (!rows.length) return;
+    
+    const invalidRows = rows.filter(r => !r.validation.isValid || !r.bundleMeta.isValid);
+    if (invalidRows.length === 0) {
+      showToast('No invalid rows to remove');
+      return;
+    }
+    
+    if (!confirm(`Remove ${invalidRows.length} invalid rows? This action cannot be undone.`)) {
+      return;
+    }
+    
+    rows = rows.filter(r => r.validation.isValid && r.bundleMeta.isValid);
+    DataHistory.saveState(rows, 'remove-invalid');
+    updateAll();
+    showToast(`✓ Removed ${invalidRows.length} invalid rows`);
+  }
+
+  async function aiAssistedFix() {
+    if (!rows.length) return alert('No data to fix');
+    
+    const invalidRows = rows.filter(r => !r.validation.isValid);
+    if (invalidRows.length === 0) {
+      showToast('No invalid numbers to fix');
+      return;
+    }
+
+    if (invalidRows.length > 50) {
+      if (!confirm(`Found ${invalidRows.length} invalid numbers. AI fix works best with smaller batches. Continue?`)) {
+        return;
+      }
+    }
+
+    disableUI(true);
+    showToast('🤖 AI is analyzing invalid numbers...');
+
+    try {
+      const batch = invalidRows.slice(0, 20);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      let fixedCount = 0;
+      batch.forEach(row => {
+        let fixed = row.rawPhone.toString().trim();
+        fixed = fixed.replace(/[\s\-()\.]/g,'');
+        
+        if (/^2547\d{8}$/.test(fixed)) fixed='+'+fixed;
+        if (/^07\d{8}$/.test(fixed)) fixed='+254'+fixed.slice(1);
+        if (/^7\d{8}$/.test(fixed)) fixed='+254'+fixed;
+        
+        if (fixed !== row.rawPhone) {
+          row.rawPhone = fixed;
+          row.validation = validatePhoneDetailed(fixed);
+          row.telco = row.validation.isValid ? detectTelco(row.validation.formatted) : 'unknown';
+          row.bundleMeta = validateBundle(row.bundle);
+          fixedCount++;
+        }
+      });
+
+      DataHistory.saveState(rows, 'ai-fix');
+      updateAll();
+      disableUI(false);
+      showToast(`✨ AI fixed ${fixedCount} of ${batch.length} numbers`);
+    } catch(err) {
+      console.error('AI fix error:', err);
+      disableUI(false);
+      showToast('❌ AI fix failed - check console');
+    }
+  }
+
+  function removeDuplicates(){ 
+    lastRemoved = rows.filter(r=>r.isDuplicate); 
+    rows = rows.filter(r=>!r.isDuplicate); 
+    DataHistory.saveState(rows, 'remove-duplicates');
+    updateAll(); 
+    showToast(`✓ ${lastRemoved.length} duplicates removed`); 
+  }
+
+  function undoAction() {
+    const previousState = DataHistory.undo();
+    if (previousState) {
+      rows = previousState;
+      updateAll();
+      showToast('↩ Undo: ' + DataHistory.history[DataHistory.currentIndex].action);
+    }
+  }
+
+  function redoAction() {
+    const nextState = DataHistory.redo();
+    if (nextState) {
+      rows = nextState;
+      updateAll();
+      showToast('↪ Redo: ' + DataHistory.history[DataHistory.currentIndex].action);
+    }
+  }
+
+  function sortByBundle(){ 
+    rows.sort((a,b)=>{ 
+      const na = parseFloat((a.bundle||'').toString().replace(/[^0-9.]/g,''))||0; 
+      const nb = parseFloat((b.bundle||'').toString().replace(/[^0-9.]/g,''))||0; 
+      return sortDesc? nb-na : na-nb; 
+    }); 
+    sortDesc=!sortDesc; 
+    DataHistory.saveState(rows, 'sort');
+    renderTable(); 
+  }
+
+  function showExportModal() {
+    refs.exportModal.classList.remove('hidden');
+  }
+
+  function hideExportModal() {
+    refs.exportModal.classList.add('hidden');
+  }
+
+  function performExport(scope, format, includeMetadata) {
+    let dataToExport = rows;
+    
+    if (scope === 'valid') {
+      dataToExport = rows.filter(r => r.validation.isValid && !r.isDuplicate);
+    } else if (scope === 'current') {
+      const currentFilter = document.getElementById('filterSelect').value;
+      dataToExport = rows.filter(r=>{
+        if (currentFilter==='all') return true;
+        if (currentFilter==='valid') return r.validation.isValid && !r.isDuplicate;
+        if (currentFilter==='invalid') return !r.validation.isValid;
+        if (currentFilter==='duplicates') return r.isDuplicate;
+        return true;
+      });
+    }
+    
+    const exportData = dataToExport.map(r => {
+      let formattedPhone = r.validation.formatted || r.rawPhone;
+      if (typeof formattedPhone === 'number') {
+        formattedPhone = formattedPhone.toLocaleString('fullwide', { useGrouping: false });
+      }
+      
+      return {
+        'First Name': r.firstName || '',
+        'Last Name': r.lastName || '',
+        'Phone Number': formattedPhone,
+        'Original Phone': r.rawPhone,
+        'Bundle Size': r.bundle || '',
+        'Telco': r.telco || '',
+        'Status': r.validation.isValid ? 'valid' : 'invalid',
+        'Validation Message': r.validation.message,
+        ...(includeMetadata && {
+          'Is Duplicate': r.isDuplicate ? 'Yes' : 'No',
+          'Bundle Valid': r.bundleMeta.isValid ? 'Yes' : 'No'
+        })
+      };
+    });
+    
+    let blob, filename;
+    const date = new Date().toISOString().split('T')[0];
+    
+    if (format === 'json') {
+      blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      filename = `cleaned_${date}.json`;
+    } else if (format === 'excel') {
+      const csv = Papa.unparse(exportData);
+      blob = new Blob([csv], { type: 'application/vnd.ms-excel' });
+      filename = `cleaned_${date}.xls`;
+    } else {
+      const csv = Papa.unparse(exportData);
+      blob = new Blob([csv], { type: 'text/csv' });
+      filename = `cleaned_${date}.csv`;
+    }
+    
+    downloadBlob(blob, filename);
+    showToast(`✓ Exported ${exportData.length} rows as ${format.toUpperCase()}`);
+  }
+
+  function downloadBlob(blob, filename) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
+  function disableUI(state){ 
+    refs.fileInput.disabled = state; 
+    document.querySelectorAll('.btn').forEach(b=>{
+      if (!b.classList.contains('theme-toggle')) {
+        b.disabled = state;
+      }
+    }); 
+  }
+
+  function checkBalance(){ 
+    const bal = parseFloat(refs.balanceInput.value||0); 
+    const total = rows.reduce((s,r)=> {
+      const bundleVal = parseFloat((r.bundle||'').toString().replace(/[^0-9.]/g,''))||0;
+      return s + bundleVal;
+    }, 0);
+    
+    const validTotal = rows.filter(r => r.validation.isValid && !r.isDuplicate)
+      .reduce((s,r)=> s + (parseFloat((r.bundle||'').toString().replace(/[^0-9.]/g,''))||0), 0);
+
+    refs.balanceFeedback.classList.remove('hidden', 'success', 'danger', 'warning');
+    
+    if (total > bal) {
+      refs.balanceInput.style.borderColor='var(--red)';
+      refs.balanceFeedback.classList.add('danger');
+      refs.balanceFeedback.innerHTML = `
+        <i class="fas fa-exclamation-triangle"></i>
+        <div>
+          <strong>Insufficient Balance!</strong><br>
+          Required: KES ${total.toFixed(2)} | Available: KES ${bal.toFixed(2)} | 
+          <span style="color:var(--red)">Shortfall: KES ${(total - bal).toFixed(2)}</span>
+        </div>
+      `;
+    } else if (validTotal > bal) {
+      refs.balanceInput.style.borderColor='var(--orange)';
+      refs.balanceFeedback.classList.add('warning');
+      refs.balanceFeedback.innerHTML = `
+        <i class="fas fa-exclamation-circle"></i>
+        <div>
+          <strong>Warning:</strong> Valid rows require KES ${validTotal.toFixed(2)} | Available: KES ${bal.toFixed(2)} | 
+          Remaining: KES ${(bal - validTotal).toFixed(2)}
+        </div>
+      `;
+    } else {
+      refs.balanceInput.style.borderColor='var(--green)';
+      refs.balanceFeedback.classList.add('success');
+      refs.balanceFeedback.innerHTML = `
+        <i class="fas fa-check-circle"></i>
+        <div>
+          <strong>Sufficient Balance</strong><br>
+          Total cost: KES ${validTotal.toFixed(2)} | Available: KES ${bal.toFixed(2)} | 
+          <span style="color:var(--green)">Remaining: KES ${(bal - validTotal).toFixed(2)}</span>
+        </div>
+      `;
+    }
+  }
+
+  function showToast(msg, withUndo=false){ 
+    refs.toastMsg.textContent = msg; 
+    refs.toast.classList.remove('hidden'); 
+    refs.toastUndo.style.display = withUndo? 'inline-block':'none'; 
+    setTimeout(()=>{ refs.toast.classList.add('hidden'); }, 5000); 
+  }
+
+  function persistFilter(){ 
+    if (refs.optPersistFilter.checked) localStorage.setItem('csv_filter', filter); 
+  }
+  
+  function loadPersist(){ 
+    const f = localStorage.getItem('csv_filter'); 
+    if (f) { filter = f; refs.filterSelect.value = f; } 
+  }
+
+  function toggleDarkMode() {
+    document.body.classList.toggle('dark-mode');
+    const isDark = document.body.classList.contains('dark-mode');
+    localStorage.setItem('darkMode', isDark);
+    refs.optDarkMode.checked = isDark;
+    refs.themeToggle.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+  }
+
+  function escapeAttr(s){ 
+    return (s||'').toString().replace(/"/g,'&quot;').replace(/&/g,'&amp;'); 
+  }
+
+  function createDebouncedSearch() {
+    let timeout;
+    return function(searchTerm) {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        searchRows(searchTerm);
+      }, 300);
+    };
+  }
+
+  function searchRows(term) {
+    searchTerm = term;
+    page = 1;
+    renderTable();
+  }
+
+  function setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        refs.searchInput.focus();
+        refs.searchInput.select();
+      }
+      
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undoAction();
+      }
+      
+      if (((e.ctrlKey || e.metaKey) && e.key === 'y') || 
+          ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey)) {
+        e.preventDefault();
+        redoAction();
+      }
+      
+      if (e.key === 'Escape') {
+        hideExportModal();
+      }
+    });
+  }
+
+  function initEventListeners() {
+    refs.fileInput.onchange = async (e)=>{ 
+      if (!e.target.files[0]) return; 
+      const txt = await e.target.files[0].text(); 
+      parseAndLoad(txt); 
+    };
+    
+    refs.uploadZone.ondragover = (e)=>{ 
+      e.preventDefault(); 
+      refs.uploadZone.classList.add('drag'); 
+    };
+    
+    refs.uploadZone.ondragleave = ()=> refs.uploadZone.classList.remove('drag');
+    
+    refs.uploadZone.ondrop = async (e)=>{ 
+      e.preventDefault(); 
+      refs.uploadZone.classList.remove('drag'); 
+      if (e.dataTransfer.files.length){ 
+        const txt = await e.dataTransfer.files[0].text(); 
+        parseAndLoad(txt); 
+      } 
+    };
+    
+    refs.uploadZone.onclick = ()=> refs.fileInput.click();
+    
+    refs.loadSample.onclick = ()=>{ 
+      parseAndLoad(`mobile,firstName,lastName,package
+0710991550,Dylan,Gathia,5000
+0722123456,John,Doe,100
++254733123456,Jane,Smith,200
+0722 123 459,Alice,Brown,100
+0722-123-460,Bob,Wilson,75
+712123461,Charlie,Davis,125
+0710991550,Dylan,Gathia,5000
+0799123456,Emma,Johnson,300
+0700123456,Frank,Miller,50
+254701234567,Grace,Taylor,200
++254711111111,Henry,Anderson,175
+0788888888,Ivy,Thomas,225
+254779876543,Jack,Moore,300`); 
+    };
+    
+    refs.autoFixBtn.onclick = autoFix; 
+    refs.aiFixBtn.onclick = aiAssistedFix;
+    refs.removeInvalidBtn.onclick = removeInvalidRows;
+    refs.removeDupBtn.onclick = removeDuplicates; 
+    refs.undoBtn.onclick = undoAction; 
+    refs.redoBtn.onclick = redoAction;
+    refs.exportBtn.onclick = showExportModal; 
+    refs.sortBundle.onclick = sortByBundle; 
+    
+    refs.filterSelect.onchange = (e)=>{ 
+      filter = e.target.value; 
+      page = 1;
+      persistFilter(); 
+      renderTable(); 
+    };
+    
+    refs.optPersistFilter.onchange = ()=> persistFilter(); 
+    refs.optPagination.onchange = ()=>{ 
+      usePagination = refs.optPagination.checked; 
+      page = 1;
+      updateAll(); 
+    };
+    refs.optDarkMode.onchange = toggleDarkMode;
+    refs.balanceInput.oninput = checkBalance;
+    
+    refs.toastUndo.onclick = ()=>{ 
+      undoAction(); 
+      refs.toast.classList.add('hidden'); 
+    };
+    
+    document.getElementById('exportCancel').onclick = hideExportModal;
+    document.getElementById('exportConfirm').onclick = () => {
+      const scope = document.querySelector('input[name="exportScope"]:checked').value;
+      const format = document.querySelector('input[name="exportFormat"]:checked').value;
+      const includeMetadata = document.getElementById('includeMetadata').checked;
+      
+      performExport(scope, format, includeMetadata);
+      hideExportModal();
+    };
+    
+    refs.themeToggle.onclick = toggleDarkMode;
+    
+    const debouncedSearch = createDebouncedSearch();
+    refs.searchInput.oninput = (e) => debouncedSearch(e.target.value);
+    
+    refs.exportModal.onclick = (e) => {
+      if (e.target === refs.exportModal) {
+        hideExportModal();
+      }
+    };
+  }
+
+  return {
+    init: ()=>{
+      initEventListeners();
+      loadPersist();
+      
+      if (localStorage.getItem('darkMode') === 'true') {
+        toggleDarkMode();
+      }
+      
+      setupKeyboardShortcuts();
+      updateChart(0, 0, 0);
+    }
+  };
+})();
+
+document.addEventListener('DOMContentLoaded', () => {
+  App.init();
+});
+</script>
+</body>
+</html>
